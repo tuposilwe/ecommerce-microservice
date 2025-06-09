@@ -19,8 +19,11 @@ public class UserController {
 
     @GetMapping
     public Iterable<UserDto> getAllUsers(
+            @RequestHeader(name = "x-auth-token",required = false) String authToken,
             @RequestParam(required = false,defaultValue = "",name = "sort") String sortBy
     ) {
+        System.out.println(authToken);
+
         if(!Set.of("name","email").contains(sortBy))
             sortBy = "name";
 
