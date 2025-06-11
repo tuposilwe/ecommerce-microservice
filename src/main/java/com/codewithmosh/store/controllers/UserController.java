@@ -58,11 +58,11 @@ public class UserController {
     ) {
         if(userRepository.existsByEmail(request.getEmail())){
             return ResponseEntity.badRequest().body(
-                    Map.of("email","Email is already registered.")
+                    Map.of("email","Email is already registered.   ")
             );
         }
 
-        var user = userMapper.toEntity(request);
+        var user = userMapper.toEntity( request);
         userRepository.save(user);
         var userDto = userMapper.toDto(user);
         var uri = uriBuilder.path("/users/{id}").buildAndExpand(userDto.getId()).toUri();
