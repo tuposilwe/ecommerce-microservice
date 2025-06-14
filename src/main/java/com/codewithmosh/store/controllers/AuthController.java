@@ -33,14 +33,14 @@ public class AuthController {
     public ResponseEntity<JwtResponse> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response
-            ) {
+    ) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
                         request.getPassword()
                 )
         );
-       var user =  userRepository.findByEmail(request.getEmail()).orElseThrow();
+        var user = userRepository.findByEmail(request.getEmail()).orElseThrow();
 
         var accessToken = jwtService.generateAccessToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
@@ -53,12 +53,6 @@ public class AuthController {
         response.addCookie(cookie);
 
         return ResponseEntity.ok(new JwtResponse(accessToken));
-    }
-
-    @PostMapping("/validate")
-    public boolean validate(@RequestHeader("Authorization") String authHeader) {
-        var token = authHeader.replace("Bearer ", "");
-        return jwtService.validateToken(token);
     }
 
     @GetMapping("/me")
@@ -74,6 +68,22 @@ public class AuthController {
 
         return ResponseEntity.ok(userDto);
     }
+
+
+    @PostMapping("/refresh")
+    public ResponseEntity<JwtResponse> refresh(
+            @CookieValue(value = "refreshToken") String refreshToken
+    ) {
+        if (!jwtService.validateToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        var userId = jwtService.getUserIdFromToken(refreshToken);
+        var user = userRepository.findById(userId).orElseThrow();
+        var accessToken = jwtService.generateAccessToken(user);
+
+        return ResponseEntity.ok(new JwtResponse(accessToken));
+    }
+
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Void> handleBadCredentialsException() {
