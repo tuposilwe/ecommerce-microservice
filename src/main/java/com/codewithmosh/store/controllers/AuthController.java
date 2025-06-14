@@ -34,8 +34,9 @@ public class AuthController {
                         request.getPassword()
                 )
         );
+       var user =  userRepository.findByEmail(request.getEmail()).orElseThrow();
 
-        var token = jwtService.generateToken(request.getEmail());
+        var token = jwtService.generateToken(user);
 
         return ResponseEntity.ok(new JwtResponse(token));
     }
@@ -49,9 +50,9 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserDto> me() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        var email = (String) authentication.getPrincipal();
+        var userId = (Long) authentication.getPrincipal();
 
-        var user = userRepository.findByEmail(email).orElse(null);
+        var user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return ResponseEntity.notFound().build();
         }
@@ -59,7 +60,6 @@ public class AuthController {
 
         return ResponseEntity.ok(userDto);
     }
-
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Void> handleBadCredentialsException() {
