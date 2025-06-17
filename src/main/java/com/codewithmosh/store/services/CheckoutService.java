@@ -23,7 +23,7 @@ public class CheckoutService {
 
 
     @Transactional
-    public CheckoutResponse checkout(CheckoutRequest request){
+    public CheckoutResponse checkout(CheckoutRequest request) {
         var cart = cartRepository.getCartWithItems(request.getCartId()).orElse(null);
         if (cart == null) {
 
@@ -38,7 +38,7 @@ public class CheckoutService {
 
         orderRepository.save(order);
         try {
-           var session = paymentGateway.createCheckoutSession(order);
+            var session = paymentGateway.createCheckoutSession(order);
 
             cartService.clearCart(cart.getId());
 
@@ -49,17 +49,14 @@ public class CheckoutService {
         }
 
     }
+
+    public void handleWebhookEvent(WebhookRequest request) {
+       paymentGateway.parseWebhookRequest(request)
+               .ifPresent(paymentResult -> {
+                   var order = orderRepository.findById(paymentResult.getOrderId()).orElseThrow();
+                   order.setStatus(paymentResult.getPaymentStatus());
+                   orderRepository.save(order);
+               });
+    }
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
