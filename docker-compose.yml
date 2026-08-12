@@ -1,3 +1,5 @@
+name: ecommerce-microservice
+
 services:
   # --- Observability & messaging infra ---
   zipkin:

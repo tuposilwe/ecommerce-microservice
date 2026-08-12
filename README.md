@@ -1,6 +1,6 @@
-# Store
+# ecommerce-microservice
 
-A microservices-based online store: React storefront/admin frontend, a Spring Cloud Gateway edge, and six independently deployable Spring Boot services with per-service Postgres databases, Eureka service discovery, centralized config, Kafka events, and Zipkin distributed tracing.
+A microservices-based e-commerce platform: React storefront/admin frontend, a Spring Cloud Gateway edge, and six independently deployable Spring Boot services with per-service Postgres databases, Eureka service discovery, centralized config, Kafka events, and Zipkin distributed tracing.
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS (`frontend/`) — bundled into `api-gateway`'s static resources
 - **Services**: Java 17, Spring Boot 3.5, Spring Cloud 2025.0, PostgreSQL, Flyway, Spring Security (JWT), Stripe, Kafka
