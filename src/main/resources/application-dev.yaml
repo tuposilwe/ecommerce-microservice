@@ -1,8 +1,0 @@
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5433/store_api
-    username: postgres
-    password: 5396rudiger
-  jpa:
-    show-sql: true
-websiteUrl: http://localhost:5173
