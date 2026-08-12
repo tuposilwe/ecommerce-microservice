@@ -50,8 +50,8 @@
     </dependency>
 
     <dependency>
-        <groupId>com.mysql</groupId>
-        <artifactId>mysql-connector-j</artifactId>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
         <scope>runtime</scope>
     </dependency>
 
@@ -62,7 +62,7 @@
 
     <dependency>
         <groupId>org.flywaydb</groupId>
-        <artifactId>flyway-mysql</artifactId>
+        <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
 
     <dependency>
@@ -146,11 +146,18 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-maven-plugin</artifactId>
             <configuration>
-                <url>jdbc:mysql://localhost:3307/store_api?createDatabaseIfNotExist=true</url>
-                <user>root</user>
+                <url>jdbc:postgresql://localhost:5433/store_api</url>
+                <user>postgres</user>
                 <password>5396rudiger</password>
                 <cleanDisabled>false</cleanDisabled>
             </configuration>
+            <dependencies>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>${postgresql.version}</version>
+                </dependency>
+            </dependencies>
         </plugin>
         <plugin>
             <groupId>org.springframework.boot</groupId>
