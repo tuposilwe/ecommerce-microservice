@@ -5,4 +5,4 @@ spring:
     password: 5396rudiger
   jpa:
     show-sql: true
-websiteUrl: http://localhost:4242
+websiteUrl: http://localhost:5173
