@@ -50,7 +50,7 @@ public class ProductController {
         productRepository.save(product);
         productDto.setId(product.getId());
 
-        var uri = uriBuilder.path("/products/{id}").buildAndExpand(productDto.getId()).toUri();
+        var uri = uriBuilder.path("/api/products/{id}").buildAndExpand(productDto.getId()).toUri();
 
         return ResponseEntity.created(uri).body(productDto);
     }

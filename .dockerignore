@@ -1,0 +1,13 @@
+target/
+.git/
+.gitignore
+.gitattributes
+.env
+.idea/
+.vscode/
+.run/
+*.iml
+HELP.md
+frontend/node_modules/
+frontend/dist/
+frontend/.env

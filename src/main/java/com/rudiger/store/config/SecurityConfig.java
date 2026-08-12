@@ -22,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 
 import java.util.List;
 
@@ -64,13 +66,16 @@ public class SecurityConfig {
                                     .requestMatchers("/swagger-ui/**").permitAll()
                                     .requestMatchers("/swagger-ui.   html").permitAll()
                                     .requestMatchers("/v3/api-docs/**").permitAll()
-                                    .requestMatchers("/carts/**").permitAll()
-                                    .requestMatchers("/admin/**").hasRole(Role.ADMIN.name())
-                                    .requestMatchers(HttpMethod.POST, "/users").permitAll()
+                                    .requestMatchers("/api/carts/**").permitAll()
+                                    .requestMatchers("/api/admin/**").hasRole(Role.ADMIN.name())
+                                    .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
-                                    .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                                    .requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll()
-                                    .requestMatchers(HttpMethod.POST, "/checkout/webhook").permitAll()
+                                    .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                                    .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                                    .requestMatchers(HttpMethod.POST, "/api/checkout/webhook").permitAll()
+                                    // The React SPA and its static assets are served from every
+                                    // non-/api path; the API itself enforces its own auth below.
+                                    .requestMatchers(new NegatedRequestMatcher(new AntPathRequestMatcher("/api/**"))).permitAll()
                                     .anyRequest().authenticated();
                         }
 

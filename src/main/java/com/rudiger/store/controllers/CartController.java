@@ -33,7 +33,7 @@ public class CartController {
     ) {
         var cartDto = cartService.createCart();
 
-        var uri = uriBuilder.path("/carts/{id}").buildAndExpand(cartDto.getId()).toUri();
+        var uri = uriBuilder.path("/api/carts/{id}").buildAndExpand(cartDto.getId()).toUri();
 
         return ResponseEntity.created(uri).body(cartDto);
     }
