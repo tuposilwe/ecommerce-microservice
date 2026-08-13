@@ -66,7 +66,9 @@ cp .env.example .env   # fill in JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_S
 docker compose up -d
 ```
 
-This starts 6 containers: `zipkin` (:9411), `kafka` (:9092, KRaft mode), and `user-db`/`catalog-db`/`cart-db`/`order-db` (:5433-5436).
+This starts 7 containers: `zipkin` (:9411), `kafka` (:9092, KRaft mode), `kafka-ui` (:8090), and `user-db`/`catalog-db`/`cart-db`/`order-db` (:5433-5436).
+
+Kafka has two listeners: `PLAINTEXT` (advertised as `localhost:9092`, for the host-run `order-service`/`payment-service`) and `INTERNAL` (advertised as `kafka:29092`, for other containers on the compose network like `kafka-ui`) — a single listener can't correctly serve both audiences since Kafka tells clients where to reconnect via the advertised address.
 
 ### 2. Start the services locally
 
@@ -91,6 +93,7 @@ Once up:
 - Eureka dashboard: `http://localhost:8761`
 - Config server: `http://localhost:8888/{service-name}/default`
 - Zipkin: `http://localhost:9411`
+- Kafka UI: `http://localhost:8090`
 - Each service is also exposed directly on its own port (8081-8085) for debugging.
 
 ## API
