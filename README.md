@@ -2,7 +2,7 @@
 
 A microservices-based e-commerce platform: React storefront/admin frontend, a Spring Cloud Gateway edge, and six independently deployable Spring Boot services with per-service Postgres databases, Eureka service discovery, centralized config, Kafka events, and Zipkin distributed tracing.
 
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS (`frontend/`) — bundled into `api-gateway`'s static resources
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS (`frontend/`) — run separately in local dev (`cd frontend && npm run dev`); `api-gateway` has a fallback `WebFilter` to serve a built SPA from its static resources, but nothing currently builds/copies the frontend there since the Docker-based build was removed (see Known limitations)
 - **Services**: Java 17, Spring Boot 3.5, Spring Cloud 2025.0, PostgreSQL, Flyway, Spring Security (JWT), Stripe, Kafka
 - **Infra**: Eureka (`eureka-server`), Spring Cloud Config (`config-server`), Spring Cloud Gateway (`api-gateway`), Zipkin, Kafka (KRaft, no Zookeeper)
 
@@ -42,7 +42,7 @@ Service boundaries and why they're split this way:
 services/
   eureka-server/     Service registry
   config-server/     Centralized config (native/file-backed, no git repo needed)
-  api-gateway/        Edge router + bundled SPA
+  api-gateway/        Edge router (SPA-serving fallback exists but is currently unwired - see Known limitations)
   user-service/
   catalog-service/
   cart-service/
@@ -50,19 +50,41 @@ services/
   payment-service/
 config-repo/          One *.yml per service, served by config-server; application.yml holds
                        shared defaults (Eureka URL, Zipkin endpoint, Kafka bootstrap servers)
-frontend/              React app (see frontend/README.md) — built into api-gateway's Docker image
+frontend/              React app (see frontend/README.md) — run standalone via `npm run dev`
 ```
 
-Each service under `services/` is a fully independent Maven project (own `pom.xml`, own `Dockerfile`) — there's no parent reactor POM. Dockerfiles build from the **repo root** as context (`docker-compose.yml` sets `context: .`), since `api-gateway`'s build also needs `frontend/`, and `config-server`'s needs `config-repo/`.
+Each service under `services/` is a fully independent Maven project (own `pom.xml`) — there's no parent reactor POM.
 
-## Running with Docker (recommended)
+## Running
+
+Only the infra that's genuinely painful to run locally is dockerized: Zipkin, Kafka, and the 4 per-service Postgres databases. The 8 Spring Boot services (`eureka-server`, `config-server`, `api-gateway`, and the 5 business services) run as plain local JVMs — via `mvn spring-boot:run` or your IDE's run configs — which makes debugging, breakpoints, and hot-reload straightforward.
+
+### 1. Start infra
 
 ```bash
-cp .env.example .env   # fill in JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET_KEY
-docker compose up --build
+cp .env.example .env   # fill in JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET_KEY, POSTGRES_PASSWORD
+docker compose up -d
 ```
 
-This starts 13 containers: 4 Postgres databases, Kafka, Zipkin, `eureka-server`, `config-server`, the 5 business services, and `api-gateway`. Give it a couple of minutes on first boot — every service waits on `config-server` being *healthy* (not just started) before it will start, since config import is best-effort (`optional:configserver:...`) and silently falls back to hardcoded defaults if config-server isn't actually ready yet.
+This starts 6 containers: `zipkin` (:9411), `kafka` (:9092, KRaft mode), and `user-db`/`catalog-db`/`cart-db`/`order-db` (:5433-5436).
+
+### 2. Start the services locally
+
+Order matters: `eureka-server` → `config-server` → everything else. Each service's `application.yml` already defaults to `localhost` for every dependency (config-server at `:8888`, Eureka at `:8761`, Postgres at `:5433-5436`, Kafka at `:9092`, Zipkin at `:9411`) — those defaults line up with the ports Docker Compose exposes above, so no extra config is needed for local runs.
+
+```bash
+set -a; source .env; set +a   # exports JWT_SECRET, STRIPE_SECRET_KEY, etc. for the services below
+
+mvn -f services/eureka-server/pom.xml spring-boot:run &
+mvn -f services/config-server/pom.xml spring-boot:run &
+# wait for both to report "Started ...Application", then:
+mvn -f services/user-service/pom.xml spring-boot:run &
+mvn -f services/catalog-service/pom.xml spring-boot:run &
+mvn -f services/cart-service/pom.xml spring-boot:run &
+mvn -f services/order-service/pom.xml spring-boot:run &
+mvn -f services/payment-service/pom.xml spring-boot:run &
+mvn -f services/api-gateway/pom.xml spring-boot:run &
+```
 
 Once up:
 - App: `http://localhost:8080`
@@ -70,19 +92,6 @@ Once up:
 - Config server: `http://localhost:8888/{service-name}/default`
 - Zipkin: `http://localhost:9411`
 - Each service is also exposed directly on its own port (8081-8085) for debugging.
-
-## Running locally without Docker
-
-Order matters: `eureka-server` → `config-server` → everything else (each service's local `application.yml` points at `config-server` via `spring.config.import=optional:configserver:http://localhost:8888`, and at Eureka via `EUREKA_URL`, both defaulting to `localhost`). You'll also need 4 local Postgres instances matching the ports in `config-repo/*.yml` (5433-5436) and a local Kafka broker for `order-service`/`payment-service`.
-
-```bash
-cd services/eureka-server && mvn spring-boot:run &
-cd services/config-server && CONFIG_REPO_PATH=$(pwd)/../../config-repo mvn spring-boot:run &
-# then each business service, each in its own terminal:
-cd services/user-service && JWT_SECRET=... mvn spring-boot:run
-```
-
-This gets unwieldy fast with 7 JVMs — Docker Compose is the realistic way to run the whole thing.
 
 ## API
 
@@ -128,3 +137,4 @@ Each service manages its own schema via Flyway, in its own `services/<name>/src/
 - `payment-service`'s checkout-session endpoint and Stripe webhook are not independently authenticated beyond network placement — real deployments would want mTLS or a shared internal-only network segment between services.
 - No circuit breaking / retry policy on the Feign clients (`cart-service` → `catalog-service`, `order-service` → `cart-service`/`payment-service`) — a downstream outage currently surfaces as a plain 5xx rather than degrading gracefully.
 - `config-server` uses the `native` (local file) profile against `config-repo/`, not a git-backed repo — fine for this project, but real multi-environment setups usually point Config Server at an actual git remote for versioned, promotable config.
+- No Dockerfiles exist anymore for the 8 Spring Boot services (removed along with the Docker-based deployment path — see "Running" above). This also means `api-gateway`'s SPA-serving fallback (`WebFilter` → `index.html`) has nothing to serve: the frontend build is no longer copied into its static resources by anything. Run the frontend standalone (`cd frontend && npm run dev`) for local dev instead.

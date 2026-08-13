@@ -1,7 +1,15 @@
 name: ecommerce-microservice
 
+# Only infra that's painful to run locally lives here: Zipkin, Kafka, and
+# per-service Postgres databases. The 8 Spring Boot services (eureka-server,
+# config-server, api-gateway, user/catalog/cart/order/payment-service) are
+# run locally (IDE or `mvn spring-boot:run`) - see README for the run order
+# and required env vars. Their application.yml defaults already point at
+# localhost:5433-5436 (db), localhost:8761 (eureka), localhost:8888 (config
+# server), localhost:9411 (zipkin) and localhost:9092 (kafka), matching the
+# ports exposed below.
+
 services:
-  # --- Observability & messaging infra ---
   zipkin:
     image: openzipkin/zipkin:latest
     ports:
@@ -15,46 +23,13 @@ services:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
 
-  # --- Spring Cloud infra ---
-  eureka-server:
-    build:
-      context: .
-      dockerfile: services/eureka-server/Dockerfile
-    ports:
-      - "8761:8761"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
-
-  config-server:
-    build:
-      context: .
-      dockerfile: services/config-server/Dockerfile
-    ports:
-      - "8888:8888"
-    environment:
-      EUREKA_URL: http://eureka-server:8761/eureka/
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
-
-  # --- Per-service databases ---
   user-db:
     image: postgres:16-alpine
     environment:
@@ -114,128 +89,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  # --- Business services ---
-  user-service:
-    build:
-      context: .
-      dockerfile: services/user-service/Dockerfile
-    depends_on:
-      config-server:
-        condition: service_healthy
-      user-db:
-        condition: service_healthy
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
-      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8081:8081"
-
-  catalog-service:
-    build:
-      context: .
-      dockerfile: services/catalog-service/Dockerfile
-    depends_on:
-      config-server:
-        condition: service_healthy
-      catalog-db:
-        condition: service_healthy
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
-      SPRING_DATASOURCE_URL: jdbc:postgresql://catalog-db:5432/catalog_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8082:8082"
-
-  cart-service:
-    build:
-      context: .
-      dockerfile: services/cart-service/Dockerfile
-    depends_on:
-      config-server:
-        condition: service_healthy
-      cart-db:
-        condition: service_healthy
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
-      SPRING_DATASOURCE_URL: jdbc:postgresql://cart-db:5432/cart_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "8083:8083"
-
-  order-service:
-    build:
-      context: .
-      dockerfile: services/order-service/Dockerfile
-    depends_on:
-      config-server:
-        condition: service_healthy
-      order-db:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/order_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "8084:8084"
-
-  payment-service:
-    build:
-      context: .
-      dockerfile: services/payment-service/Dockerfile
-    depends_on:
-      config-server:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET_KEY: ${STRIPE_WEBHOOK_SECRET_KEY}
-      WEBSITE_URL: ${WEBSITE_URL:-http://localhost:8080}
-    ports:
-      - "8085:8085"
-
-  # --- Edge ---
-  api-gateway:
-    build:
-      context: .
-      dockerfile: services/api-gateway/Dockerfile
-    depends_on:
-      - config-server
-      - user-service
-      - catalog-service
-      - cart-service
-      - order-service
-      - payment-service
-    environment:
-      CONFIG_SERVER_URL: http://config-server:8888
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
-    ports:
-      - "8080:8080"
 
 volumes:
   user_db_data:
