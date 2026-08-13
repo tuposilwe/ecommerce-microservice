@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "ecommerce-microservice",
-    "description": "All requests go through api-gateway (:8080). Run the requests inside a folder top-to-bottom on a first pass — several requests use test scripts to auto-populate {{token}}, {{cartId}}, {{productId}}, {{orderId}} from prior responses, so the collection is runnable end-to-end without manual editing.\n\nAdmin-gated requests (product create/update/delete/image) need a user with role=ADMIN. The seed data has none by default; promote one manually, e.g.:\n  docker exec <user-db-container> psql -U postgres -d user_db -c \"UPDATE users SET role='ADMIN' WHERE email='you@example.com';\"\nthen re-run Login so {{token}} carries the ADMIN role.",
+    "description": "All requests go through api-gateway (:8080). Run the requests inside a folder top-to-bottom on a first pass — several requests use test scripts to auto-populate {{token}}, {{cartId}}, {{productId}}, {{orderId}} from prior responses, so the collection is runnable end-to-end without manual editing.\n\nAdmin-gated requests (product create/update/delete/image) need a user with role=ADMIN. user-service seeds one on startup (Flyway V2__seed_admin_user.sql): email admin@example.com, password admin123 — just Login with those credentials so {{token}} carries the ADMIN role. To promote a different user instead:\n  docker exec <user-db-container> psql -U postgres -d user_db -c \"UPDATE users SET role='ADMIN' WHERE email='you@example.com';\"\nthen re-run Login.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
