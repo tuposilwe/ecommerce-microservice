@@ -95,14 +95,14 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- Edges: Feign calls between services (same row, left-right) -->
-        <mxCell id="e-cart-catalog" value="Feign: GET /products/{id}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="cart-svc" target="catalog-svc">
+        <!-- Edges: RestClient calls between services (same row, left-right) -->
+        <mxCell id="e-cart-catalog" value="RestClient: GET /products/{id}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="cart-svc" target="catalog-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-order-cart" value="Feign: get / clear cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="cart-svc">
+        <mxCell id="e-order-cart" value="RestClient: get / clear cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="cart-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-order-payment" value="Feign: create checkout session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="payment-svc">
+        <mxCell id="e-order-payment" value="RestClient: create checkout session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="payment-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 

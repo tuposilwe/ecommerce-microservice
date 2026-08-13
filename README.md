@@ -31,8 +31,8 @@ Service boundaries and why they're split this way:
 
 - **user-service** — auth (JWT issue/refresh) + user CRUD. Owns `users`.
 - **catalog-service** — products, categories, product images (stored as bytea). Owns `products`, `categories`, `product_images`.
-- **cart-service** — anonymous/guest carts. Owns `carts`, `cart_items`. Calls **catalog-service** via Feign to snapshot a product's name/price when it's added to a cart (no cross-service joins).
-- **order-service** — orders + checkout initiation. Owns `orders`, `order_items` (`customer_id` is a plain `BIGINT`, no FK — `user-service` owns that data). Calls **cart-service** (fetch + clear cart) and **payment-service** (create a Stripe session) via Feign. Consumes `payment-events` from Kafka to update order status once Stripe confirms payment.
+- **cart-service** — anonymous/guest carts. Owns `carts`, `cart_items`. Calls **catalog-service** via a load-balanced `RestClient` to snapshot a product's name/price when it's added to a cart (no cross-service joins).
+- **order-service** — orders + checkout initiation. Owns `orders`, `order_items` (`customer_id` is a plain `BIGINT`, no FK — `user-service` owns that data). Calls **cart-service** (fetch + clear cart) and **payment-service** (create a Stripe session) via a load-balanced `RestClient`. Consumes `payment-events` from Kafka to update order status once Stripe confirms payment.
 - **payment-service** — owns the Stripe integration and webhook. Stateless (no DB — Stripe is the system of record). Publishes `payment-events` to Kafka after verifying a webhook signature, rather than calling `order-service` synchronously, since the webhook is itself an async callback from Stripe.
 - **api-gateway** — Spring Cloud Gateway (reactive/WebFlux). Routes `/api/**` to the right service via Eureka (`lb://service-name`) with `StripPrefix=1`, so each service's own controllers stay unprefixed (`/products`, `/carts`, ...). Everything else falls through to the bundled React build, with a `WebFilter` that rewrites unmatched GET requests to `/index.html` so client-side routes work on direct navigation.
 
@@ -125,11 +125,13 @@ Each service also exposes Swagger/OpenAPI or at least `/actuator/health` directl
 { "orderId": 123, "status": "PAID" }
 ```
 
-`order-service` consumes it and updates the order's status. This is the one genuinely asynchronous hop in the system — everything else is synchronous REST via Feign, which is appropriate since the webhook itself is already an async callback from Stripe.
+`order-service` consumes it and updates the order's status. This is the one genuinely asynchronous hop in the system — everything else is synchronous REST via a load-balanced `RestClient`, which is appropriate since the webhook itself is already an async callback from Stripe.
+
+Inter-service calls (`cart-service` → `catalog-service`, `order-service` → `cart-service`/`payment-service`) go through a `@LoadBalanced RestClient.Builder` bean (`config/RestClientConfig.java` in each service) with a plain `http://<service-name>` base URL — Spring Cloud LoadBalancer resolves the service name to a live instance via Eureka, the same registry `api-gateway` uses for its `lb://` routes.
 
 ## Tracing (Zipkin)
 
-Every service (including the gateway) ships `micrometer-tracing-bridge-brave` + `zipkin-reporter-brave`, sampling 100% of requests (`config-repo/application.yml`). `cart-service` and `order-service` additionally pull in `feign-micrometer` so trace context propagates across their Feign calls — without it, each Feign hop starts a *new* trace instead of continuing the caller's. Open `http://localhost:9411`, search by service, and a checkout request shows as one trace spanning `api-gateway → order-service → cart-service` and `order-service → payment-service`.
+Every service (including the gateway) ships `micrometer-tracing-bridge-brave` + `zipkin-reporter-brave`, sampling 100% of requests (`config-repo/application.yml`). Because each `RestClient.Builder` is built via `RestClientBuilderConfigurer.configure(...)`, it inherits Boot's default HTTP client observation instrumentation, so trace context propagates across service calls automatically — no extra dependency needed (this replaced `feign-micrometer`, which the old Feign-based clients required for the same thing). Open `http://localhost:9411`, search by service, and a checkout request shows as one trace spanning `api-gateway → order-service → cart-service` and `order-service → payment-service`.
 
 ## Database migrations
 
@@ -138,6 +140,6 @@ Each service manages its own schema via Flyway, in its own `services/<name>/src/
 ## Known limitations
 
 - `payment-service`'s checkout-session endpoint and Stripe webhook are not independently authenticated beyond network placement — real deployments would want mTLS or a shared internal-only network segment between services.
-- No circuit breaking / retry policy on the Feign clients (`cart-service` → `catalog-service`, `order-service` → `cart-service`/`payment-service`) — a downstream outage currently surfaces as a plain 5xx rather than degrading gracefully.
+- No circuit breaking / retry policy on the inter-service `RestClient` calls (`cart-service` → `catalog-service`, `order-service` → `cart-service`/`payment-service`) — a downstream outage currently surfaces as a plain 5xx rather than degrading gracefully.
 - `config-server` uses the `native` (local file) profile against `config-repo/`, not a git-backed repo — fine for this project, but real multi-environment setups usually point Config Server at an actual git remote for versioned, promotable config.
 - No Dockerfiles exist anymore for the 8 Spring Boot services (removed along with the Docker-based deployment path — see "Running" above). This also means `api-gateway`'s SPA-serving fallback (`WebFilter` → `index.html`) has nothing to serve: the frontend build is no longer copied into its static resources by anything. Run the frontend standalone (`cd frontend && npm run dev`) for local dev instead.

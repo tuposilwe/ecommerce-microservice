@@ -1,11 +1,21 @@
 package com.rudiger.cart.clients;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
-@FeignClient(name = "catalog-service")
-public interface CatalogClient {
-    @GetMapping("/products/{id}")
-    ProductSummaryDto getProduct(@PathVariable("id") Long id);
+@Component
+public class CatalogClient {
+    private final RestClient restClient;
+
+    public CatalogClient(@LoadBalanced RestClient.Builder loadBalancedRestClientBuilder) {
+        this.restClient = loadBalancedRestClientBuilder.baseUrl("http://catalog-service").build();
+    }
+
+    public ProductSummaryDto getProduct(Long id) {
+        return restClient.get()
+                .uri("/products/{id}", id)
+                .retrieve()
+                .body(ProductSummaryDto.class);
+    }
 }

@@ -1,17 +1,30 @@
 package com.rudiger.order.clients;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 import java.util.UUID;
 
-@FeignClient(name = "cart-service")
-public interface CartClient {
-    @GetMapping("/carts/{cartId}")
-    CartResponse getCart(@PathVariable("cartId") UUID cartId);
+@Component
+public class CartClient {
+    private final RestClient restClient;
 
-    @DeleteMapping("/carts/{cartId}/items")
-    void clearCart(@PathVariable("cartId") UUID cartId);
+    public CartClient(@LoadBalanced RestClient.Builder loadBalancedRestClientBuilder) {
+        this.restClient = loadBalancedRestClientBuilder.baseUrl("http://cart-service").build();
+    }
+
+    public CartResponse getCart(UUID cartId) {
+        return restClient.get()
+                .uri("/carts/{cartId}", cartId)
+                .retrieve()
+                .body(CartResponse.class);
+    }
+
+    public void clearCart(UUID cartId) {
+        restClient.delete()
+                .uri("/carts/{cartId}/items", cartId)
+                .retrieve()
+                .toBodilessEntity();
+    }
 }

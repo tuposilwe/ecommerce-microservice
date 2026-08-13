@@ -13,10 +13,11 @@ import com.rudiger.order.exceptions.CartEmptyException;
 import com.rudiger.order.exceptions.CartNotFoundException;
 import com.rudiger.order.exceptions.PaymentException;
 import com.rudiger.order.repositories.OrderRepository;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 
 @RequiredArgsConstructor
 @Service
@@ -59,7 +60,7 @@ public class CheckoutService {
             cartClient.clearCart(cart.getId());
 
             return new CheckoutResponse(order.getId(), session.getCheckoutUrl());
-        } catch (FeignException ex) {
+        } catch (RestClientException ex) {
             orderRepository.delete(order);
             throw new PaymentException("Error creating a checkout session");
         }
@@ -68,7 +69,7 @@ public class CheckoutService {
     private com.rudiger.order.clients.CartResponse fetchCart(java.util.UUID cartId) {
         try {
             return cartClient.getCart(cartId);
-        } catch (FeignException.NotFound ex) {
+        } catch (HttpClientErrorException.NotFound ex) {
             throw new CartNotFoundException();
         }
     }

@@ -1,11 +1,22 @@
 package com.rudiger.order.clients;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
-@FeignClient(name = "payment-service")
-public interface PaymentClient {
-    @PostMapping("/checkout/sessions")
-    CheckoutSessionResponse createCheckoutSession(@RequestBody CreateCheckoutSessionRequest request);
+@Component
+public class PaymentClient {
+    private final RestClient restClient;
+
+    public PaymentClient(@LoadBalanced RestClient.Builder loadBalancedRestClientBuilder) {
+        this.restClient = loadBalancedRestClientBuilder.baseUrl("http://payment-service").build();
+    }
+
+    public CheckoutSessionResponse createCheckoutSession(CreateCheckoutSessionRequest request) {
+        return restClient.post()
+                .uri("/checkout/sessions")
+                .body(request)
+                .retrieve()
+                .body(CheckoutSessionResponse.class);
+    }
 }

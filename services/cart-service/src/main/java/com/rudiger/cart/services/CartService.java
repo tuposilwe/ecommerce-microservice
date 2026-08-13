@@ -8,9 +8,9 @@ import com.rudiger.cart.exceptions.CartNotFoundException;
 import com.rudiger.cart.exceptions.ProductNotFoundException;
 import com.rudiger.cart.mappers.CartMapper;
 import com.rudiger.cart.repositories.CartRepository;
-import feign.FeignException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.UUID;
 
@@ -91,7 +91,7 @@ public class CartService {
     private com.rudiger.cart.clients.ProductSummaryDto fetchProduct(Long productId) {
         try {
             return catalogClient.getProduct(productId);
-        } catch (FeignException.NotFound ex) {
+        } catch (HttpClientErrorException.NotFound ex) {
             throw new ProductNotFoundException();
         }
     }
