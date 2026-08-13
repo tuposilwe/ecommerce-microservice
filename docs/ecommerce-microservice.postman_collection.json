@@ -1,0 +1,424 @@
+{
+  "info": {
+    "name": "ecommerce-microservice",
+    "description": "All requests go through api-gateway (:8080). Run the requests inside a folder top-to-bottom on a first pass — several requests use test scripts to auto-populate {{token}}, {{cartId}}, {{productId}}, {{orderId}} from prior responses, so the collection is runnable end-to-end without manual editing.\n\nAdmin-gated requests (product create/update/delete/image) need a user with role=ADMIN. The seed data has none by default; promote one manually, e.g.:\n  docker exec <user-db-container> psql -U postgres -d user_db -c \"UPDATE users SET role='ADMIN' WHERE email='you@example.com';\"\nthen re-run Login so {{token}} carries the ADMIN role.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "cartId", "value": "", "type": "string" },
+    { "key": "productId", "value": "1", "type": "string" },
+    { "key": "categoryId", "value": "1", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "1. Auth & Users (user-service)",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test{{$timestamp}}@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('userId', body.user_id);",
+                  "pm.collectionVariables.set('registeredEmail', body.email);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{registeredEmail}}\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('token', body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get current user (me)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        },
+        {
+          "name": "Refresh access token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh"] },
+            "description": "Relies on the httpOnly refreshToken cookie set by Login. That cookie is Secure, so this only works over HTTPS - it will fail over plain http://localhost, which is expected."
+          }
+        },
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users?sort=name",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [{ "key": "sort", "value": "name" }]
+            }
+          }
+        },
+        {
+          "name": "Get user by id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"{{registeredEmail}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"oldPassword\": \"password123\",\n  \"newPassword\": \"newPassword456\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Delete user",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "{{userId}}"] },
+            "description": "Destructive - only run this if you actually want to remove the test user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Catalog (catalog-service)",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+          }
+        },
+        {
+          "name": "List products",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"] }
+          }
+        },
+        {
+          "name": "List products by category",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/products?categoryId={{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [{ "key": "categoryId", "value": "{{categoryId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get product by id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api", "products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "Create product (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Product\",\n  \"price\": 9.99,\n  \"description\": \"Created from Postman.\",\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api", "products"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('productId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update product (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Product (updated)\",\n  \"price\": 12.49,\n  \"description\": \"Updated from Postman.\",\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api", "products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "Upload product image (ADMIN)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}", "image"]
+            },
+            "description": "Set the 'file' field's value to an image on disk before sending."
+          }
+        },
+        {
+          "name": "Get product image",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}", "image"]
+            }
+          }
+        },
+        {
+          "name": "Delete product image (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}", "image"]
+            }
+          }
+        },
+        {
+          "name": "Delete product (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api", "products", "{{productId}}"] },
+            "description": "Destructive - only run against a product you created in this collection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Cart (cart-service)",
+      "item": [
+        {
+          "name": "Create cart",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/carts", "host": ["{{baseUrl}}"], "path": ["api", "carts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('cartId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get cart",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/carts/{{cartId}}", "host": ["{{baseUrl}}"], "path": ["api", "carts", "{{cartId}}"] }
+          }
+        },
+        {
+          "name": "Add item to cart",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": {{productId}}\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/carts/{{cartId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "carts", "{{cartId}}", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update cart item quantity",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 3\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/carts/{{cartId}}/items/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "carts", "{{cartId}}", "items", "{{productId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Orders & Checkout (order-service)",
+      "item": [
+        {
+          "name": "Checkout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cartId\": \"{{cartId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/checkout", "host": ["{{baseUrl}}"], "path": ["api", "checkout"] },
+            "description": "Requires the cart (from folder 3) to have at least one item, and {{token}} to be set (from folder 1's Login). Redirects to a real Stripe Checkout session on success - the checkoutUrl in the response is where a browser would go next."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('orderId', pm.response.json().orderId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List my orders",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api", "orders"] }
+          }
+        },
+        {
+          "name": "Get order by id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["api", "orders", "{{orderId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Payments (payment-service)",
+      "item": [
+        {
+          "name": "Stripe webhook (reference only)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "stripe-signature", "value": "t=...,v1=...", "description": "Real requests are signed by Stripe with your webhook secret - this can't be faked from Postman without replicating that signature." }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": { \"object\": { \"metadata\": { \"order_id\": \"{{orderId}}\" } } }\n}" },
+            "url": { "raw": "{{baseUrl}}/api/checkout/webhook", "host": ["{{baseUrl}}"], "path": ["api", "checkout", "webhook"] },
+            "description": "Not runnable as-is - included for documentation. In practice, use the Stripe CLI (stripe listen --forward-to localhost:8080/api/checkout/webhook) to exercise this endpoint with correctly-signed events."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Cleanup (optional, cart-service)",
+      "item": [
+        {
+          "name": "Remove item from cart",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/carts/{{cartId}}/items/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "carts", "{{cartId}}", "items", "{{productId}}"]
+            },
+            "description": "Optional - run only if you want to remove a single item from the cart used above. Runs after Checkout on purpose, so it doesn't empty the cart before checkout runs."
+          }
+        },
+        {
+          "name": "Clear cart",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/carts/{{cartId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "carts", "{{cartId}}", "items"]
+            },
+            "description": "Optional - empties the cart used above. Runs after Checkout on purpose, so it doesn't empty the cart before checkout runs."
+          }
+        }
+      ]
+    }
+  ]
+}
