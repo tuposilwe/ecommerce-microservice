@@ -74,73 +74,73 @@
         </mxCell>
 
         <!-- Edges: client -> gateway -->
-        <mxCell id="e-client-gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="client" target="gateway">
+        <mxCell id="e-client-gateway" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="client" target="gateway">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <!-- Edges: gateway -> services -->
-        <mxCell id="e-gw-user" value="/api/users, /api/auth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="user-svc">
+        <mxCell id="e-gw-user" value="/api/users, /api/auth" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="user-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-gw-catalog" value="/api/products, /api/categories" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="catalog-svc">
+        <mxCell id="e-gw-catalog" value="/api/products, /api/categories" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="catalog-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-gw-cart" value="/api/carts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="cart-svc">
+        <mxCell id="e-gw-cart" value="/api/carts" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="cart-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-gw-order" value="/api/orders, /api/checkout" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="order-svc">
+        <mxCell id="e-gw-order" value="/api/orders, /api/checkout" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="order-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-gw-payment" value="/api/checkout/webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="payment-svc">
+        <mxCell id="e-gw-payment" value="/api/checkout/webhook" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="gateway" target="payment-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <!-- Edges: RestClient calls between services (same row, left-right) -->
-        <mxCell id="e-cart-catalog" value="RestClient: GET /products/{id}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="cart-svc" target="catalog-svc">
+        <mxCell id="e-cart-catalog" value="RestClient: GET /products/{id}" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="cart-svc" target="catalog-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-order-cart" value="RestClient: get / clear cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="cart-svc">
+        <mxCell id="e-order-cart" value="RestClient: get / clear cart" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="cart-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-order-payment" value="RestClient: create checkout session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="payment-svc">
+        <mxCell id="e-order-payment" value="RestClient: create checkout session" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="order-svc" target="payment-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <!-- Edges: services -> their DBs -->
-        <mxCell id="e-user-db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="user-svc" target="user-db">
+        <mxCell id="e-user-db" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="user-svc" target="user-db">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-catalog-db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="catalog-svc" target="catalog-db">
+        <mxCell id="e-catalog-db" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="catalog-svc" target="catalog-db">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-cart-db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="cart-svc" target="cart-db">
+        <mxCell id="e-cart-db" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="cart-svc" target="cart-db">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-order-db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="order-svc" target="order-db">
+        <mxCell id="e-order-db" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;" edge="1" parent="1" source="order-svc" target="order-db">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <!-- Edge: payment -> stripe -->
-        <mxCell id="e-payment-stripe" value="Stripe API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;strokeColor=#d6b656;" edge="1" parent="1" source="payment-svc" target="stripe">
+        <mxCell id="e-payment-stripe" value="Stripe API" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;strokeColor=#d6b656;" edge="1" parent="1" source="payment-svc" target="stripe">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <!-- Edges: Kafka -->
-        <mxCell id="e-payment-kafka" value="publish PaymentEvent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;strokeColor=#d79b00;exitX=0.3;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="payment-svc" target="kafka">
+        <mxCell id="e-payment-kafka" value="publish PaymentEvent" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;strokeColor=#d79b00;exitX=0.3;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="payment-svc" target="kafka">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-kafka-order" value="consume, update order status" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;strokeColor=#d79b00;entryX=0.7;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="kafka" target="order-svc">
+        <mxCell id="e-kafka-order" value="consume, update order status" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;strokeColor=#d79b00;entryX=0.7;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="kafka" target="order-svc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <!-- Dashed edges: gateway -> cross-cutting infra (representative; applies to all services) -->
-        <mxCell id="e-gw-eureka" value="register / discover" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;strokeColor=#b85450;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gateway" target="eureka">
+        <mxCell id="e-gw-eureka" value="register / discover" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;strokeColor=#b85450;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gateway" target="eureka">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-gw-config" value="fetch config" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;strokeColor=#b85450;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gateway" target="config">
+        <mxCell id="e-gw-config" value="fetch config" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;strokeColor=#b85450;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gateway" target="config">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-gw-zipkin" value="traces" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;strokeColor=#b85450;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gateway" target="zipkin">
+        <mxCell id="e-gw-zipkin" value="traces" style="flowAnimation=1;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;strokeColor=#b85450;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gateway" target="zipkin">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
