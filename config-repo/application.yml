@@ -3,7 +3,14 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
-    prefer-ip-address: true
+    # Register under a hostname, not the machine's LAN IP: with
+    # prefer-ip-address the registry pins whatever IP the host had at startup,
+    # so a DHCP renewal or network switch leaves every already-registered
+    # service advertising an address that no longer resolves - callers then
+    # hang until TCP timeout instead of failing fast. Deployments that need a
+    # routable address set EUREKA_INSTANCE_HOSTNAME per instance.
+    prefer-ip-address: false
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
 
 management:
   tracing:
