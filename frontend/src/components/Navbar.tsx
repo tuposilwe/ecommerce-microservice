@@ -20,7 +20,7 @@ export function Navbar() {
         </Link>
         <div className="flex items-center gap-6 text-sm font-medium text-slate-600">
           {user?.role === 'ADMIN' && (
-            <Link to="/admin/products" className="hover:text-slate-900">
+            <Link to="/admin" className="hover:text-slate-900">
               Admin
             </Link>
           )}

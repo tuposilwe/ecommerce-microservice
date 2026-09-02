@@ -11,6 +11,7 @@ export interface UserDto {
   user_id: number;
   name: string;
   email: string;
+  role: Role;
   createdAt: string;
 }
 
@@ -60,6 +61,7 @@ export interface OrderItemDto {
 
 export interface OrderDto {
   id: number;
+  customerId?: number;
   status: string;
   createdAt: string;
   items: OrderItemDto[];

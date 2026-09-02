@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   createProduct,
   deleteProduct,
@@ -107,9 +108,9 @@ export function AdminProductsPage() {
         <h1 className="text-2xl font-semibold text-slate-900">Manage products</h1>
         <button
           onClick={startCreate}
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
+          className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
         >
-          New product
+          <Plus size={15} aria-hidden /> New product
         </button>
       </div>
 
@@ -251,15 +252,15 @@ export function AdminProductsPage() {
               <td className="py-2 text-right">
                 <button
                   onClick={() => startEdit(product)}
-                  className="mr-3 text-slate-600 hover:underline"
+                  className="mr-3 inline-flex items-center gap-1 text-slate-600 hover:underline"
                 >
-                  Edit
+                  <Pencil size={14} aria-hidden /> Edit
                 </button>
                 <button
                   onClick={() => product.id && handleDelete(product.id)}
-                  className="text-red-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-red-600 hover:underline"
                 >
-                  Delete
+                  <Trash2 size={14} aria-hidden /> Delete
                 </button>
               </td>
             </tr>

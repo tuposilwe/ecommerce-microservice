@@ -15,3 +15,8 @@ export async function checkoutOrder(orderId: number): Promise<CheckoutResponse> 
   const { data } = await apiClient.post<CheckoutResponse>(`/orders/${orderId}/checkout`);
   return data;
 }
+
+export async function getAdminOrders(): Promise<OrderDto[]> {
+  const { data } = await apiClient.get<OrderDto[]>('/orders/admin');
+  return data;
+}
