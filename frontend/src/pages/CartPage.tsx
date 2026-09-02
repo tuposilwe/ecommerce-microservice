@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -23,7 +24,11 @@ export function CartPage() {
     try {
       const { checkoutUrl } = await checkout(cart.id);
       window.location.href = checkoutUrl;
-    } catch {
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 401) {
+        navigate('/login', { state: { from: '/cart' } });
+        return;
+      }
       setError('Could not start checkout. Please try again.');
       setIsCheckingOut(false);
     }
