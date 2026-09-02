@@ -2,6 +2,7 @@ package com.rudiger.user.controllers;
 
 import com.rudiger.user.dtos.ChangePasswordRequest;
 import com.rudiger.user.dtos.RegisterUserRequest;
+import com.rudiger.user.dtos.UpdateRoleRequest;
 import com.rudiger.user.dtos.UpdateUserRequest;
 import com.rudiger.user.dtos.UserDto;
 import com.rudiger.user.entities.Role;
@@ -95,6 +96,20 @@ public class UserController {
         }
         userRepository.delete(user);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/role")
+    public ResponseEntity<UserDto> updateRole(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateRoleRequest request
+    ) {
+        var user = userRepository.findById(id).orElse(null);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        user.setRole(request.getRole());
+        userRepository.save(user);
+        return ResponseEntity.ok(userMapper.toDto(user));
     }
 
     @PostMapping("/{id}/change-password")

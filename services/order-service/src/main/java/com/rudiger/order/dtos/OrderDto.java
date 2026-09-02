@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 public class OrderDto {
     private Long id;
+    private Long customerId;
     private String status;
     private LocalDateTime createdAt;
     private List<OrderItemDto> items;

@@ -23,6 +23,11 @@ public class OrderService {
         return orders.stream().map(orderMapper::toDto).toList();
     }
 
+    // Admin-only (enforced in SecurityConfig): every customer's orders.
+    public List<OrderDto> getAllOrdersForAdmin() {
+        return orderRepository.getAllWithItems().stream().map(orderMapper::toDto).toList();
+    }
+
     public OrderDto getOrder(Long orderId) {
         var order = orderRepository
                 .getOrderWithItems(orderId)

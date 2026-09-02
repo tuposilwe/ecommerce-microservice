@@ -28,6 +28,13 @@ public class OrderController {
         return orderService.getAllOrders();
     }
 
+    // Literal path wins over the /{orderId} template, so this never collides
+    // with order lookups; ADMIN-only via SecurityConfig.
+    @GetMapping("/admin")
+    public List<OrderDto> getAllOrdersForAdmin() {
+        return orderService.getAllOrdersForAdmin();
+    }
+
     @GetMapping("/{orderId}")
     public OrderDto getOrder(@PathVariable("orderId") Long orderId) {
         return orderService.getOrder(orderId);
