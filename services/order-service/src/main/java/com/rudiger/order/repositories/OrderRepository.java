@@ -1,6 +1,9 @@
 package com.rudiger.order.repositories;
 
 import com.rudiger.order.entities.Order;
+import com.rudiger.order.entities.PaymentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +22,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> getOrderWithItems(@Param("orderId") Long orderId);
 
     @EntityGraph(attributePaths = "items")
-    @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
-    List<Order> getAllWithItems();
+    Page<Order> findAllBy(Pageable pageable);
+
+    @EntityGraph(attributePaths = "items")
+    Page<Order> findAllByStatus(PaymentStatus status, Pageable pageable);
 }

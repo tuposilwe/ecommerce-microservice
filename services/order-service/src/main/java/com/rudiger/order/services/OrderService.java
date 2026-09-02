@@ -1,10 +1,13 @@
 package com.rudiger.order.services;
 
 import com.rudiger.order.dtos.OrderDto;
+import com.rudiger.order.entities.PaymentStatus;
 import com.rudiger.order.exceptions.OrderNotFoundException;
 import com.rudiger.order.mappers.OrderMapper;
 import com.rudiger.order.repositories.OrderRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -23,9 +26,13 @@ public class OrderService {
         return orders.stream().map(orderMapper::toDto).toList();
     }
 
-    // Admin-only (enforced in SecurityConfig): every customer's orders.
-    public List<OrderDto> getAllOrdersForAdmin() {
-        return orderRepository.getAllWithItems().stream().map(orderMapper::toDto).toList();
+    // Admin-only (enforced in SecurityConfig): every customer's orders,
+    // optionally filtered by status.
+    public Page<OrderDto> getAllOrdersForAdmin(PaymentStatus status, Pageable pageable) {
+        var page = status == null
+                ? orderRepository.findAllBy(pageable)
+                : orderRepository.findAllByStatus(status, pageable);
+        return page.map(orderMapper::toDto);
     }
 
     public OrderDto getOrder(Long orderId) {

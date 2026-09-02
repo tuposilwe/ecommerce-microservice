@@ -8,8 +8,10 @@ import com.rudiger.user.dtos.UserDto;
 import com.rudiger.user.entities.Role;
 import com.rudiger.user.mappers.UserMapper;
 import com.rudiger.user.repositories.UserRepository;
+import com.rudiger.user.dtos.PageResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,17 +33,22 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping
-    public Iterable<UserDto> getAllUsers(
-            @RequestParam(required = false, defaultValue = "", name = "sort") String sortBy
+    public PageResponse<UserDto> getAllUsers(
+            @RequestParam(required = false, defaultValue = "name", name = "sort") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        if (!Set.of("name", "email").contains(sortBy))
+        if (!Set.of("name", "email", "id", "role").contains(sortBy))
             sortBy = "name";
+        var dir = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(dir, sortBy));
 
-        return userRepository
-                .findAll(Sort.by(sortBy))
-                .stream()
-                .map(userMapper::toDto)
-                .toList();
+        var users = search.isBlank()
+                ? userRepository.findAll(pageable)
+                : userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search, search, pageable);
+        return PageResponse.of(users.map(userMapper::toDto));
     }
 
     @GetMapping("/{id}")
