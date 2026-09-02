@@ -1,12 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getOrder } from '../api/orders';
+import { checkoutOrder, getOrder } from '../api/orders';
 import type { OrderDto } from '../types';
 import { formatMoney } from '../lib/format';
 
 export function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<OrderDto | null | undefined>(undefined);
+  const [isPaying, setIsPaying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handlePay() {
+    if (!order) return;
+    setError(null);
+    setIsPaying(true);
+    try {
+      const { checkoutUrl } = await checkoutOrder(order.id);
+      window.location.href = checkoutUrl;
+    } catch {
+      setError('Could not start checkout. Please try again.');
+      setIsPaying(false);
+    }
+  }
 
   useEffect(() => {
     if (!orderId) return;
@@ -54,7 +69,20 @@ export function OrderDetailPage() {
         ))}
       </ul>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex items-center justify-between">
+        <div>
+          {order.status === 'PENDING' && (
+            <button
+              type="button"
+              disabled={isPaying}
+              onClick={handlePay}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            >
+              {isPaying ? 'Redirecting…' : 'Pay now'}
+            </button>
+          )}
+          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        </div>
         <div className="text-right">
           <p className="text-sm text-slate-500">Total</p>
           <p className="text-xl font-semibold text-slate-900">{formatMoney(order.totalPrice)}</p>

@@ -11,9 +11,12 @@ import com.rudiger.order.entities.OrderItem;
 import com.rudiger.order.entities.PaymentStatus;
 import com.rudiger.order.exceptions.CartEmptyException;
 import com.rudiger.order.exceptions.CartNotFoundException;
+import com.rudiger.order.exceptions.OrderNotFoundException;
+import com.rudiger.order.exceptions.OrderNotPendingException;
 import com.rudiger.order.exceptions.PaymentException;
 import com.rudiger.order.repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
@@ -62,6 +65,35 @@ public class CheckoutService {
             return new CheckoutResponse(order.getId(), session.getCheckoutUrl());
         } catch (RestClientException ex) {
             orderRepository.delete(order);
+            throw new PaymentException("Error creating a checkout session");
+        }
+    }
+
+    // Re-initiates payment for an order whose earlier Stripe session was
+    // abandoned or failed. Stripe sessions are single-use, so a fresh one is
+    // created each time; the order itself is left untouched until the webhook
+    // confirms payment.
+    public CheckoutResponse checkoutOrder(Long orderId) {
+        var order = orderRepository
+                .getOrderWithItems(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+        if (!order.isPlacedBy(currentUserProvider.getCurrentUserId())) {
+            throw new AccessDeniedException("You don't have access to this order.");
+        }
+        if (order.getStatus() != PaymentStatus.PENDING) {
+            throw new OrderNotPendingException();
+        }
+
+        try {
+            var sessionRequest = new CreateCheckoutSessionRequest(
+                    order.getId(),
+                    order.getItems().stream()
+                            .map(item -> new LineItemRequest(item.getProductName(), item.getUnitPrice(), item.getQuantity()))
+                            .toList()
+            );
+            var session = paymentClient.createCheckoutSession(sessionRequest);
+            return new CheckoutResponse(order.getId(), session.getCheckoutUrl());
+        } catch (RestClientException ex) {
             throw new PaymentException("Error creating a checkout session");
         }
     }
