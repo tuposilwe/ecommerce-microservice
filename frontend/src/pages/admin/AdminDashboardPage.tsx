@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { ArrowRight, Banknote, CheckCircle2, Clock, Users } from 'lucide-react';
 import { getAdminOrders } from '../../api/orders';
-import { getUsers } from '../../api/users';
+import { getAllUserNames } from '../../api/users';
 import type { OrderDto } from '../../types';
 import { formatMoney } from '../../lib/format';
 
@@ -61,11 +61,13 @@ export function AdminDashboardPage() {
   const [customerNames, setCustomerNames] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
-    getAdminOrders()
-      .then(setOrders)
+    // Stats aggregate client-side over the most recent orders (capped at the
+    // server's max page size).
+    getAdminOrders({ size: 100 })
+      .then((page) => setOrders(page.content))
       .catch(() => setOrders([]));
-    getUsers()
-      .then((users) => setCustomerNames(new Map(users.map((u) => [u.user_id, u.name]))))
+    getAllUserNames()
+      .then(setCustomerNames)
       .catch(() => {});
   }, []);
 

@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Fragment, useEffect, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SortHeader } from '../../components/SortHeader';
 import { getAdminOrders } from '../../api/orders';
-import { getUsers } from '../../api/users';
-import type { OrderDto } from '../../types';
+import { getAllUserNames } from '../../api/users';
+import type { OrderDto, PageResponse, SortDirection } from '../../types';
 import { formatMoney } from '../../lib/format';
+
+const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
   PAID: 'bg-green-100 text-green-800',
@@ -13,98 +16,155 @@ const statusStyles: Record<string, string> = {
 };
 
 export function AdminOrdersPage() {
-  const [orders, setOrders] = useState<OrderDto[] | null>(null);
+  const [result, setResult] = useState<PageResponse<OrderDto> | null>(null);
   const [customerNames, setCustomerNames] = useState<Map<number, string>>(new Map());
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState('createdAt');
+  const [direction, setDirection] = useState<SortDirection>('desc');
 
   useEffect(() => {
-    getAdminOrders()
-      .then(setOrders)
-      .catch(() => setOrders([]));
-    getUsers()
-      .then((users) => setCustomerNames(new Map(users.map((u) => [u.user_id, u.name]))))
+    getAdminOrders({ page, size: PAGE_SIZE, status: status || undefined, sort, direction })
+      .then(setResult)
+      .catch(() => setResult(null));
+  }, [page, status, sort, direction]);
+
+  useEffect(() => {
+    getAllUserNames()
+      .then(setCustomerNames)
       .catch(() => {});
   }, []);
 
-  if (orders === null) {
-    return <p className="mx-auto max-w-4xl px-4 py-8 text-sm text-slate-500">Loading orders…</p>;
+  function handleSort(field: string) {
+    if (sort === field) {
+      setDirection(direction === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSort(field);
+      setDirection(field === 'createdAt' ? 'desc' : 'asc');
+    }
+    setPage(0);
   }
+
+  const orders = result?.content ?? [];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-2xl font-semibold text-slate-900">All orders</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-slate-900">All orders</h1>
+        <select
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(0);
+          }}
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+        >
+          <option value="">All statuses</option>
+          <option value="PAID">Paid</option>
+          <option value="PENDING">Pending</option>
+          <option value="FAILED">Failed</option>
+          <option value="CANCELED">Canceled</option>
+        </select>
+      </div>
 
-      {orders.length === 0 ? (
-        <p className="mt-6 text-sm text-slate-500">No orders yet.</p>
+      {result === null ? (
+        <p className="mt-6 text-sm text-slate-500">Loading orders…</p>
+      ) : orders.length === 0 ? (
+        <p className="mt-6 text-sm text-slate-500">No orders match.</p>
       ) : (
-        <table className="mt-6 w-full text-left text-sm">
-          <thead className="text-slate-500">
-            <tr className="border-b border-slate-200">
-              <th className="py-2">Order</th>
-              <th className="py-2">Customer</th>
-              <th className="py-2">Date</th>
-              <th className="py-2">Status</th>
-              <th className="py-2 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200">
-            {orders.map((order) => (
-              <>
-                <tr
-                  key={order.id}
-                  onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
-                  className="cursor-pointer hover:bg-slate-50"
-                >
-                  <td className="py-2 font-medium text-slate-900">
-                    <span className="inline-flex items-center gap-1">
-                      {expandedId === order.id ? (
-                        <ChevronDown size={14} aria-hidden className="text-slate-400" />
-                      ) : (
-                        <ChevronRight size={14} aria-hidden className="text-slate-400" />
-                      )}
-                      #{order.id}
-                    </span>
-                  </td>
-                  <td className="py-2 text-slate-600">
-                    {(order.customerId != null && customerNames.get(order.customerId)) ||
-                      `user ${order.customerId}`}
-                  </td>
-                  <td className="py-2 text-slate-600">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </td>
-                  <td className="py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        statusStyles[order.status] ?? 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="py-2 text-right font-medium text-slate-900">
-                    {formatMoney(order.totalPrice)}
-                  </td>
-                </tr>
-                {expandedId === order.id && (
-                  <tr key={`${order.id}-items`}>
-                    <td colSpan={5} className="bg-slate-50 px-4 py-3">
-                      <ul className="space-y-1 text-slate-600">
-                        {order.items.map((item) => (
-                          <li key={item.product.id} className="flex justify-between">
-                            <span>
-                              {item.quantity} &times; {item.product.name}
-                            </span>
-                            <span>{formatMoney(item.totalPrice)}</span>
-                          </li>
-                        ))}
-                      </ul>
+        <>
+          <table className="mt-6 w-full text-left text-sm">
+            <thead className="text-slate-500">
+              <tr className="border-b border-slate-200">
+                <SortHeader label="Order" field="id" sort={sort} direction={direction} onSort={handleSort} />
+                <th className="py-2">Customer</th>
+                <SortHeader label="Date" field="createdAt" sort={sort} direction={direction} onSort={handleSort} />
+                <SortHeader label="Status" field="status" sort={sort} direction={direction} onSort={handleSort} />
+                <SortHeader label="Total" field="totalPrice" sort={sort} direction={direction} onSort={handleSort} className="text-right" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {orders.map((order) => (
+                <Fragment key={order.id}>
+                  <tr
+                    onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                    className="cursor-pointer hover:bg-slate-50"
+                  >
+                    <td className="py-2 font-medium text-slate-900">
+                      <span className="inline-flex items-center gap-1">
+                        {expandedId === order.id ? (
+                          <ChevronDown size={14} aria-hidden className="text-slate-400" />
+                        ) : (
+                          <ChevronRight size={14} aria-hidden className="text-slate-400" />
+                        )}
+                        #{order.id}
+                      </span>
+                    </td>
+                    <td className="py-2 text-slate-600">
+                      {(order.customerId != null && customerNames.get(order.customerId)) ||
+                        `user ${order.customerId}`}
+                    </td>
+                    <td className="py-2 text-slate-600">
+                      {new Date(order.createdAt).toLocaleString()}
+                    </td>
+                    <td className="py-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          statusStyles[order.status] ?? 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="py-2 text-right font-medium text-slate-900">
+                      {formatMoney(order.totalPrice)}
                     </td>
                   </tr>
-                )}
-              </>
-            ))}
-          </tbody>
-        </table>
+                  {expandedId === order.id && (
+                    <tr>
+                      <td colSpan={5} className="bg-slate-50 px-4 py-3">
+                        <ul className="space-y-1 text-slate-600">
+                          {order.items.map((item) => (
+                            <li key={item.product.id} className="flex justify-between">
+                              <span>
+                                {item.quantity} &times; {item.product.name}
+                              </span>
+                              <span>{formatMoney(item.totalPrice)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+            <span>
+              Page {result.page + 1} of {Math.max(result.totalPages, 1)} &middot;{' '}
+              {result.totalElements} orders
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(page - 1)}
+                disabled={page === 0}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-50 disabled:opacity-40"
+              >
+                <ChevronLeft size={14} aria-hidden /> Prev
+              </button>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={page + 1 >= result.totalPages}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-50 disabled:opacity-40"
+              >
+                Next <ChevronRight size={14} aria-hidden />
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

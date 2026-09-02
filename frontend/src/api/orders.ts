@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { CheckoutResponse, OrderDto } from '../types';
+import type { CheckoutResponse, OrderDto, PageResponse, SortDirection } from '../types';
 
 export async function getOrders(): Promise<OrderDto[]> {
   const { data } = await apiClient.get<OrderDto[]>('/orders');
@@ -16,7 +16,17 @@ export async function checkoutOrder(orderId: number): Promise<CheckoutResponse> 
   return data;
 }
 
-export async function getAdminOrders(): Promise<OrderDto[]> {
-  const { data } = await apiClient.get<OrderDto[]>('/orders/admin');
+export interface AdminOrdersQuery {
+  page?: number;
+  size?: number;
+  status?: string;
+  sort?: string;
+  direction?: SortDirection;
+}
+
+export async function getAdminOrders(query: AdminOrdersQuery = {}): Promise<PageResponse<OrderDto>> {
+  const { data } = await apiClient.get<PageResponse<OrderDto>>('/orders/admin', {
+    params: query,
+  });
   return data;
 }

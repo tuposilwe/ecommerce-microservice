@@ -76,3 +76,13 @@ export interface CheckoutResponse {
 export interface ApiFieldErrors {
   [field: string]: string;
 }
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export type SortDirection = 'asc' | 'desc';
