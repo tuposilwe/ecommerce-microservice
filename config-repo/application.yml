@@ -22,7 +22,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+  metrics:
+    tags:
+      # Every metric carries the service it came from, so one Prometheus job
+      # can scrape all eight and still break results down per service.
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        # Publish latency as histogram buckets, not just the default
+        # count/sum/max summary - histogram_quantile() (the p95 panel) has
+        # nothing to work with otherwise.
+        http.server.requests: true
+  observations:
+    key-values:
+      application: ${spring.application.name}
 
 spring:
   kafka:
