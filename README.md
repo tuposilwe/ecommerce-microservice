@@ -50,6 +50,8 @@ services/
   payment-service/
 config-repo/          One *.yml per service, served by config-server; application.yml holds
                        shared defaults (Eureka URL, Zipkin endpoint, Kafka bootstrap servers)
+monitoring/           Prometheus scrape config + Grafana datasource/dashboard provisioning,
+                       mounted into the containers by docker-compose
 frontend/              React app (see frontend/README.md) — run standalone via `npm run dev`
 ```
 
@@ -66,7 +68,7 @@ cp .env.example .env   # fill in JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_S
 docker compose up -d
 ```
 
-This starts 7 containers: `zipkin` (:9411), `kafka` (:9092, KRaft mode), `kafka-ui` (:8090), and `user-db`/`catalog-db`/`cart-db`/`order-db` (:5433-5436).
+This starts 9 containers: `zipkin` (:9411), `kafka` (:9092, KRaft mode), `kafka-ui` (:8090), `prometheus` (:9090), `grafana` (:3000), and `user-db`/`catalog-db`/`cart-db`/`order-db` (:5433-5436).
 
 Kafka has two listeners: `PLAINTEXT` (advertised as `localhost:9092`, for the host-run `order-service`/`payment-service`) and `INTERNAL` (advertised as `kafka:29092`, for other containers on the compose network like `kafka-ui`) — a single listener can't correctly serve both audiences since Kafka tells clients where to reconnect via the advertised address.
 
@@ -94,6 +96,8 @@ Once up:
 - Config server: `http://localhost:8888/{service-name}/default`
 - Zipkin: `http://localhost:9411`
 - Kafka UI: `http://localhost:8090`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3001` (anonymous admin, no login)
 - Each service is also exposed directly on its own port (8081-8085) for debugging.
 
 ## API
@@ -132,6 +136,14 @@ Inter-service calls (`cart-service` → `catalog-service`, `order-service` → `
 ## Tracing (Zipkin)
 
 Every service (including the gateway) ships `micrometer-tracing-bridge-brave` + `zipkin-reporter-brave`, sampling 100% of requests (`config-repo/application.yml`). Because each `RestClient.Builder` is built via `RestClientBuilderConfigurer.configure(...)`, it inherits Boot's default HTTP client observation instrumentation, so trace context propagates across service calls automatically — no extra dependency needed (this replaced `feign-micrometer`, which the old Feign-based clients required for the same thing). Open `http://localhost:9411`, search by service, and a checkout request shows as one trace spanning `api-gateway → order-service → cart-service` and `order-service → payment-service`.
+
+## Metrics (Prometheus + Grafana)
+
+Every service exposes `/actuator/prometheus` via `micrometer-registry-prometheus`, and each metric is tagged with `application=<service name>` (`config-repo/application.yml`), so a single Prometheus job scrapes all eight and results still break down per service.
+
+Because the services run as host JVMs while Prometheus runs in a container, the scrape targets are `host.docker.internal:<port>` rather than compose service names (`monitoring/prometheus/prometheus.yml`). Each target also carries an explicit `service` label, so `up{service="order-service"}` still identifies a service while it's down — a stopped app exports no metrics of its own, tags included.
+
+Grafana is provisioned from files (`monitoring/grafana/provisioning/`): the Prometheus datasource and an "Ecommerce services" dashboard with request rate, 5xx error rate, p95 latency, and JVM heap, plus an up/down tile per service. Series colors are pinned per service name rather than assigned by query order, so a service keeps its color when others drop out of a result. Anonymous access is enabled — this stack is local-only, so don't expose it as-is.
 
 ## Database migrations
 
