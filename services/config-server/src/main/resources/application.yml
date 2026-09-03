@@ -12,9 +12,28 @@ spring:
         native:
           search-locations: file:${CONFIG_REPO_PATH:../../config-repo}
 
+# config-server serves config-repo but cannot import from itself, so the
+# shared actuator/metrics settings are repeated here. Exposing `prometheus`
+# also matters for a second reason: Config Server maps /{application}/{profile}
+# at the root, so an unexposed /actuator/prometheus is swallowed by that
+# handler and answered with config JSON (application="actuator") instead of
+# 404. Once the endpoint exists, the actuator mapping wins - which is why
+# /actuator/health was always fine.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
-    prefer-ip-address: true
+    # Matches config-repo/application.yml: register by hostname, not a LAN IP
+    # that goes stale when the machine's address changes.
+    prefer-ip-address: false
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}

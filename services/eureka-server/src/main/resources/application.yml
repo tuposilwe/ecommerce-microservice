@@ -5,6 +5,18 @@ spring:
   application:
     name: eureka-server
 
+# eureka-server bootstraps the registry itself, so it never imports
+# config-repo/application.yml the way the business services do - the shared
+# actuator/metrics settings have to be repeated here.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 eureka:
   instance:
     hostname: ${EUREKA_HOSTNAME:localhost}
