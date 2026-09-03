@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+# The 8 Spring Boot services run as host JVMs (see README), while Prometheus
+# runs in a container - so targets go through host.docker.internal rather than
+# a compose service name. Each target carries an explicit `service` label so
+# `up{service="..."}` still identifies a service while it is down, which the
+# micrometer-supplied `application` tag cannot do (a stopped app exports
+# nothing at all).
+scrape_configs:
+  - job_name: spring-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8761"]
+        labels: { service: eureka-server }
+      - targets: ["host.docker.internal:8888"]
+        labels: { service: config-server }
+      - targets: ["host.docker.internal:8080"]
+        labels: { service: api-gateway }
+      - targets: ["host.docker.internal:8081"]
+        labels: { service: user-service }
+      - targets: ["host.docker.internal:8082"]
+        labels: { service: catalog-service }
+      - targets: ["host.docker.internal:8083"]
+        labels: { service: cart-service }
+      - targets: ["host.docker.internal:8084"]
+        labels: { service: order-service }
+      - targets: ["host.docker.internal:8085"]
+        labels: { service: payment-service }
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

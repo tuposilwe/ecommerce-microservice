@@ -46,6 +46,38 @@ services:
     depends_on:
       - kafka
 
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    # The scrape targets are host JVMs; on Linux host.docker.internal is not
+    # resolved automatically the way Docker Desktop does it.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      # 3001 on the host: 3000 is a common dev-server default and is often
+      # already taken. Grafana still listens on 3000 inside the container.
+      - "3001:3000"
+    environment:
+      # Local-only stack: skip the login wall and land straight on the
+      # provisioned dashboard.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
   user-db:
     image: postgres:16-alpine
     environment:
@@ -111,3 +143,5 @@ volumes:
   catalog_db_data:
   cart_db_data:
   order_db_data:
+  prometheus_data:
+  grafana_data:
