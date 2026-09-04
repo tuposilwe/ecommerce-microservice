@@ -78,6 +78,50 @@ services:
     depends_on:
       - prometheus
 
+  # One postgres-exporter per database: each service owns its own Postgres, so
+  # there is no single instance to point at. They sit on the compose network,
+  # so they reach the databases by service name on 5432 - not the 5433-5436
+  # ports published to the host.
+  user-db-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@user-db:5432/user_db?sslmode=disable"
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+  catalog-db-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@catalog-db:5432/catalog_db?sslmode=disable"
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+
+  cart-db-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@cart-db:5432/cart_db?sslmode=disable"
+    depends_on:
+      cart-db:
+        condition: service_healthy
+
+  order-db-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@order-db:5432/order_db?sslmode=disable"
+    depends_on:
+      order-db:
+        condition: service_healthy
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    # INTERNAL listener: this is a container talking to another container, so
+    # kafka:29092 rather than the host-advertised localhost:9092.
+    command: ["--kafka.server=kafka:29092"]
+    depends_on:
+      - kafka
+
   user-db:
     image: postgres:16-alpine
     environment:

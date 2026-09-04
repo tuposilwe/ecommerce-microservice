@@ -29,6 +29,24 @@ scrape_configs:
       - targets: ["host.docker.internal:8085"]
         labels: { service: payment-service }
 
+  # The exporters run as containers alongside Prometheus, so these targets use
+  # compose service names on the container-internal port (9187 / 9308) - unlike
+  # the host JVMs above.
+  - job_name: postgres
+    static_configs:
+      - targets: ["user-db-exporter:9187"]
+        labels: { database: user_db, service: user-service }
+      - targets: ["catalog-db-exporter:9187"]
+        labels: { database: catalog_db, service: catalog-service }
+      - targets: ["cart-db-exporter:9187"]
+        labels: { database: cart_db, service: cart-service }
+      - targets: ["order-db-exporter:9187"]
+        labels: { database: order_db, service: order-service }
+
+  - job_name: kafka
+    static_configs:
+      - targets: ["kafka-exporter:9308"]
+
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
