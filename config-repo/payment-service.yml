@@ -2,6 +2,10 @@ server:
   port: 8085
 
 spring:
+  jwt:
+    # Same signing secret as the other services: payment-service only verifies
+    # tokens, it never issues them.
+    secret: ${JWT_SECRET}
   kafka:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
