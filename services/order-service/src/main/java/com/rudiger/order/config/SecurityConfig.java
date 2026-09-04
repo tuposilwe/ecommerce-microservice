@@ -26,6 +26,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(c -> c
                         .requestMatchers("/actuator/**").permitAll()
+                        // Errors forward to /error; without permitting it, a
+                        // validation failure gets challenged there and reaches
+                        // the caller as a misleading 401 instead of a 400.
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/orders/admin").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/orders/*/status").hasRole("ADMIN")
                         .anyRequest().authenticated()
