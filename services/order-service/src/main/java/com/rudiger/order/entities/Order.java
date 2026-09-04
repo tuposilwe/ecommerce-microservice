@@ -7,6 +7,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
+import java.util.UUID;
 import java.util.Set;
 
 @Getter
@@ -32,6 +33,11 @@ public class Order {
 
     @Column(name = "total_price")
     private BigDecimal totalPrice;
+
+    // The cart this order was built from. Kept so the cart can be emptied once
+    // payment is confirmed; null for orders placed before that was tracked.
+    @Column(name = "cart_id")
+    private UUID cartId;
 
     @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
     private Set<OrderItem> items = new LinkedHashSet<>();

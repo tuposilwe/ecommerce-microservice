@@ -41,6 +41,7 @@ public class CheckoutService {
         order.setCustomerId(currentUserProvider.getCurrentUserId());
         order.setStatus(PaymentStatus.PENDING);
         order.setTotalPrice(cart.getTotalPrice());
+        order.setCartId(cart.getId());
         cart.getItems().forEach(item -> order.getItems().add(new OrderItem(
                 order,
                 item.getProduct().getId(),
@@ -60,8 +61,10 @@ public class CheckoutService {
             );
             var session = paymentClient.createCheckoutSession(sessionRequest);
 
-            cartClient.clearCart(cart.getId());
-
+            // The cart is deliberately NOT cleared here: at this point the
+            // customer has only been handed a Stripe URL, and may never pay.
+            // PaymentEventListener empties it once the webhook confirms the
+            // payment, so an abandoned checkout leaves the cart intact.
             return new CheckoutResponse(order.getId(), session.getCheckoutUrl());
         } catch (RestClientException ex) {
             orderRepository.delete(order);
