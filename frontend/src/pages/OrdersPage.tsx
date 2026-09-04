@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { checkoutOrder, getOrders } from '../api/orders';
+import { Trash2 } from 'lucide-react';
+import { checkoutOrder, deleteOrder, getOrders } from '../api/orders';
 import type { OrderDto } from '../types';
 import { formatMoney } from '../lib/format';
 
@@ -9,11 +10,24 @@ export function OrdersPage() {
   const [payingOrderId, setPayingOrderId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadOrders() {
     getOrders()
       .then(setOrders)
       .catch(() => setOrders([]));
-  }, []);
+  }
+
+  useEffect(loadOrders, []);
+
+  async function handleDelete(orderId: number) {
+    if (!confirm(`Delete order #${orderId}? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await deleteOrder(orderId);
+      loadOrders();
+    } catch {
+      setError('Could not delete the order. Please try again.');
+    }
+  }
 
   async function handlePay(orderId: number) {
     setError(null);
@@ -53,17 +67,30 @@ export function OrdersPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   {order.status === 'PENDING' && (
-                    <button
-                      type="button"
-                      disabled={payingOrderId !== null}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handlePay(order.id);
-                      }}
-                      className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-                    >
-                      {payingOrderId === order.id ? 'Redirecting…' : 'Pay now'}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled={payingOrderId !== null}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePay(order.id);
+                        }}
+                        className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+                      >
+                        {payingOrderId === order.id ? 'Redirecting…' : 'Pay now'}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete order ${order.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDelete(order.id);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={14} aria-hidden /> Delete
+                      </button>
+                    </>
                   )}
                   <span className="font-medium text-slate-900">{formatMoney(order.totalPrice)}</span>
                 </div>

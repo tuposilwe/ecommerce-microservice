@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { SortHeader } from '../../components/SortHeader';
-import { getAdminOrders } from '../../api/orders';
+import { deleteOrder, getAdminOrders } from '../../api/orders';
 import { getAllUserNames } from '../../api/users';
 import type { OrderDto, PageResponse, SortDirection } from '../../types';
 import { formatMoney } from '../../lib/format';
@@ -23,12 +23,26 @@ export function AdminOrdersPage() {
   const [status, setStatus] = useState('');
   const [sort, setSort] = useState('createdAt');
   const [direction, setDirection] = useState<SortDirection>('desc');
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadOrders() {
     getAdminOrders({ page, size: PAGE_SIZE, status: status || undefined, sort, direction })
       .then(setResult)
       .catch(() => setResult(null));
-  }, [page, status, sort, direction]);
+  }
+
+  useEffect(loadOrders, [page, status, sort, direction]);
+
+  async function handleDelete(orderId: number) {
+    if (!confirm(`Delete order #${orderId}? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await deleteOrder(orderId);
+      loadOrders();
+    } catch {
+      setError('Could not delete the order.');
+    }
+  }
 
   useEffect(() => {
     getAllUserNames()
@@ -68,6 +82,8 @@ export function AdminOrdersPage() {
         </select>
       </div>
 
+      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+
       {result === null ? (
         <p className="mt-6 text-sm text-slate-500">Loading orders…</p>
       ) : orders.length === 0 ? (
@@ -82,6 +98,7 @@ export function AdminOrdersPage() {
                 <SortHeader label="Date" field="createdAt" sort={sort} direction={direction} onSort={handleSort} />
                 <SortHeader label="Status" field="status" sort={sort} direction={direction} onSort={handleSort} />
                 <SortHeader label="Total" field="totalPrice" sort={sort} direction={direction} onSort={handleSort} className="text-right" />
+                <th className="py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -120,10 +137,22 @@ export function AdminOrdersPage() {
                     <td className="py-2 text-right font-medium text-slate-900">
                       {formatMoney(order.totalPrice)}
                     </td>
+                    <td className="py-2 pl-3 text-right">
+                      <button
+                        aria-label={`Delete order ${order.id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(order.id);
+                        }}
+                        className="inline-flex items-center gap-1 text-red-600 hover:underline"
+                      >
+                        <Trash2 size={14} aria-hidden /> Delete
+                      </button>
+                    </td>
                   </tr>
                   {expandedId === order.id && (
                     <tr>
-                      <td colSpan={5} className="bg-slate-50 px-4 py-3">
+                      <td colSpan={6} className="bg-slate-50 px-4 py-3">
                         <ul className="space-y-1 text-slate-600">
                           {order.items.map((item) => (
                             <li key={item.product.id} className="flex justify-between">

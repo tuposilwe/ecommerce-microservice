@@ -3,6 +3,7 @@ package com.rudiger.order.services;
 import com.rudiger.order.dtos.OrderDto;
 import com.rudiger.order.entities.PaymentStatus;
 import com.rudiger.order.exceptions.OrderNotFoundException;
+import com.rudiger.order.exceptions.OrderNotPendingException;
 import com.rudiger.order.mappers.OrderMapper;
 import com.rudiger.order.repositories.OrderRepository;
 import lombok.AllArgsConstructor;
@@ -24,6 +25,27 @@ public class OrderService {
         var userId = currentUserProvider.getCurrentUserId();
         var orders = orderRepository.getOrdersByCustomer(userId);
         return orders.stream().map(orderMapper::toDto).toList();
+    }
+
+    // A customer may remove an order only while it is still PENDING: once
+    // Stripe has taken payment the order is the record of a real transaction,
+    // so deleting it would destroy history the customer cannot recreate. An
+    // admin can delete regardless.
+    public void deleteOrder(Long orderId) {
+        var order = orderRepository
+                .getOrderWithItems(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+
+        if (!currentUserProvider.isAdmin()) {
+            if (!order.isPlacedBy(currentUserProvider.getCurrentUserId())) {
+                throw new AccessDeniedException("You don't have access to this order.");
+            }
+            if (order.getStatus() != PaymentStatus.PENDING) {
+                throw new OrderNotPendingException();
+            }
+        }
+
+        orderRepository.delete(order);
     }
 
     // Admin-only (enforced in SecurityConfig): every customer's orders,

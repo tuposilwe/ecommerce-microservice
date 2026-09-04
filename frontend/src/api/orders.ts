@@ -11,6 +11,10 @@ export async function getOrder(orderId: number): Promise<OrderDto> {
   return data;
 }
 
+export async function deleteOrder(orderId: number): Promise<void> {
+  await apiClient.delete(`/orders/${orderId}`);
+}
+
 export async function checkoutOrder(orderId: number): Promise<CheckoutResponse> {
   const { data } = await apiClient.post<CheckoutResponse>(`/orders/${orderId}/checkout`);
   return data;

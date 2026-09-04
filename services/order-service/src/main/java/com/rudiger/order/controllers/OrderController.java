@@ -59,6 +59,12 @@ public class OrderController {
         return orderService.getOrder(orderId);
     }
 
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<Void> deleteOrder(@PathVariable("orderId") Long orderId) {
+        orderService.deleteOrder(orderId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{orderId}/checkout")
     public CheckoutResponse checkoutOrder(@PathVariable("orderId") Long orderId) {
         return checkoutService.checkoutOrder(orderId);
