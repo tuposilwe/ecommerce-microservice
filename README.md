@@ -68,7 +68,7 @@ cp .env.example .env   # fill in JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_S
 docker compose up -d
 ```
 
-This starts 9 containers: `zipkin` (:9411), `kafka` (:9092, KRaft mode), `kafka-ui` (:8090), `prometheus` (:9090), `grafana` (:3000), and `user-db`/`catalog-db`/`cart-db`/`order-db` (:5433-5436).
+This starts 14 containers: `zipkin` (:9411), `kafka` (:9092, KRaft mode), `kafka-ui` (:8090), `prometheus` (:9090), `grafana` (:3001), `user-db`/`catalog-db`/`cart-db`/`order-db` (:5433-5436), and the five Prometheus exporters (one `postgres-exporter` per database plus one `kafka-exporter`), which have no published ports since only Prometheus reads them.
 
 Kafka has two listeners: `PLAINTEXT` (advertised as `localhost:9092`, for the host-run `order-service`/`payment-service`) and `INTERNAL` (advertised as `kafka:29092`, for other containers on the compose network like `kafka-ui`) — a single listener can't correctly serve both audiences since Kafka tells clients where to reconnect via the advertised address.
 
@@ -143,7 +143,9 @@ Every service exposes `/actuator/prometheus` via `micrometer-registry-prometheus
 
 Because the services run as host JVMs while Prometheus runs in a container, the scrape targets are `host.docker.internal:<port>` rather than compose service names (`monitoring/prometheus/prometheus.yml`). Each target also carries an explicit `service` label, so `up{service="order-service"}` still identifies a service while it's down — a stopped app exports no metrics of its own, tags included.
 
-Grafana is provisioned from files (`monitoring/grafana/provisioning/`): the Prometheus datasource and an "Ecommerce services" dashboard with request rate, 5xx error rate, p95 latency, and JVM heap, plus an up/down tile per service. Series colors are pinned per service name rather than assigned by query order, so a service keeps its color when others drop out of a result. Anonymous access is enabled — this stack is local-only, so don't expose it as-is.
+Datastores are covered by exporters rather than by the services themselves: a `postgres-exporter` per database (each service owns its own Postgres, so there is no single instance to point at) and one `kafka-exporter`. These run as containers, so Prometheus scrapes them by compose service name — unlike the host JVMs above.
+
+Grafana is provisioned from files (`monitoring/grafana/provisioning/`): the Prometheus datasource and two dashboards — "Ecommerce services" (request rate, 5xx error rate, p95 latency, JVM heap, plus an up/down tile per service) and "Ecommerce infrastructure" (Postgres connections, commit rate and database size; Kafka consumer-group lag and messages produced). Series colors are pinned per service name rather than assigned by query order, so a service keeps its color when others drop out of a result. Anonymous access is enabled — this stack is local-only, so don't expose it as-is.
 
 ## Database migrations
 
