@@ -1,12 +1,14 @@
 import { Fragment, useEffect, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { SortHeader } from '../../components/SortHeader';
-import { deleteOrder, getAdminOrders } from '../../api/orders';
+import { deleteOrder, getAdminOrders, updateOrderStatus } from '../../api/orders';
 import { getAllUserNames } from '../../api/users';
 import type { OrderDto, PageResponse, SortDirection } from '../../types';
 import { formatMoney } from '../../lib/format';
 
 const PAGE_SIZE = 10;
+
+const STATUSES = ['PENDING', 'PAID', 'FAILED', 'CANCELED'];
 
 const statusStyles: Record<string, string> = {
   PAID: 'bg-green-100 text-green-800',
@@ -32,6 +34,16 @@ export function AdminOrdersPage() {
   }
 
   useEffect(loadOrders, [page, status, sort, direction]);
+
+  async function handleStatusChange(orderId: number, status: string) {
+    setError(null);
+    try {
+      await updateOrderStatus(orderId, status);
+      loadOrders();
+    } catch {
+      setError('Could not update the status.');
+    }
+  }
 
   async function handleDelete(orderId: number) {
     if (!confirm(`Delete order #${orderId}? This cannot be undone.`)) return;
@@ -126,13 +138,24 @@ export function AdminOrdersPage() {
                       {new Date(order.createdAt).toLocaleString()}
                     </td>
                     <td className="py-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      <select
+                        value={order.status}
+                        aria-label={`Status of order ${order.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(order.id, e.target.value);
+                        }}
+                        className={`rounded-full border-0 px-2 py-0.5 text-xs font-semibold ${
                           statusStyles[order.status] ?? 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        {order.status}
-                      </span>
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="py-2 text-right font-medium text-slate-900">
                       {formatMoney(order.totalPrice)}

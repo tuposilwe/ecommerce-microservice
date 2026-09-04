@@ -4,12 +4,14 @@ import com.rudiger.order.dtos.CheckoutResponse;
 import com.rudiger.order.dtos.ErrorDto;
 import com.rudiger.order.dtos.OrderDto;
 import com.rudiger.order.dtos.PageResponse;
+import com.rudiger.order.dtos.UpdateOrderStatusRequest;
 import com.rudiger.order.entities.PaymentStatus;
 import com.rudiger.order.exceptions.OrderNotFoundException;
 import com.rudiger.order.exceptions.OrderNotPendingException;
 import com.rudiger.order.exceptions.PaymentException;
 import com.rudiger.order.services.CheckoutService;
 import com.rudiger.order.services.OrderService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -57,6 +59,14 @@ public class OrderController {
     @GetMapping("/{orderId}")
     public OrderDto getOrder(@PathVariable("orderId") Long orderId) {
         return orderService.getOrder(orderId);
+    }
+
+    @PutMapping("/{orderId}/status")
+    public OrderDto updateOrderStatus(
+            @PathVariable("orderId") Long orderId,
+            @Valid @RequestBody UpdateOrderStatusRequest request
+    ) {
+        return orderService.updateStatus(orderId, request.getStatus());
     }
 
     @DeleteMapping("/{orderId}")

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,6 +26,20 @@ public class OrderService {
         var userId = currentUserProvider.getCurrentUserId();
         var orders = orderRepository.getOrdersByCustomer(userId);
         return orders.stream().map(orderMapper::toDto).toList();
+    }
+
+    // Admin-only (enforced in SecurityConfig). Any transition is allowed - an
+    // admin correcting a stuck order needs to move it in both directions. Note
+    // this only edits our record: setting PAID here does not take a payment,
+    // and Stripe remains the system of record for what was actually charged.
+    @Transactional
+    public OrderDto updateStatus(Long orderId, PaymentStatus status) {
+        var order = orderRepository
+                .getOrderWithItems(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+        order.setStatus(status);
+        orderRepository.save(order);
+        return orderMapper.toDto(order);
     }
 
     // A customer may remove an order only while it is still PENDING: once

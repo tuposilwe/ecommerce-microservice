@@ -11,6 +11,11 @@ export async function getOrder(orderId: number): Promise<OrderDto> {
   return data;
 }
 
+export async function updateOrderStatus(orderId: number, status: string): Promise<OrderDto> {
+  const { data } = await apiClient.put<OrderDto>(`/orders/${orderId}/status`, { status });
+  return data;
+}
+
 export async function deleteOrder(orderId: number): Promise<void> {
   await apiClient.delete(`/orders/${orderId}`);
 }
